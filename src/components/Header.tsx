@@ -6,21 +6,21 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   return (
-    <header className="bg-gradient-to-r from-blue-900 to-purple-900 text-white shadow-md">
+    <header className="absolute top-0 left-0 right-0 z-50 text-white">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center space-x-2 text-xl font-bold">
           <Sparkles className="h-6 w-6" />
           <span>Prompt Engine</span>
         </Link>
-        
+
         {/* Mobile menu button */}
-        <button 
+        <button
           className="lg:hidden"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           <MenuIcon className="h-6 w-6" />
         </button>
-        
+
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center space-x-8">
           <Link to="/" className="hover:text-purple-300 transition-colors">
@@ -35,49 +35,49 @@ const Header: React.FC = () => {
           <Link to="/about" className="hover:text-purple-300 transition-colors">
             About
           </Link>
-          <Link 
-            to="/create" 
+          <Link
+            to="/create"
             className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-md transition-colors"
           >
             Get Started
           </Link>
         </nav>
       </div>
-      
+
       {/* Mobile Navigation */}
       {isMenuOpen && (
-        <div className="lg:hidden bg-blue-800 px-4 py-2">
+        <div className="lg:hidden bg-black/60 px-4 py-2 backdrop-blur-sm">
           <nav className="flex flex-col space-y-3 py-2">
-            <Link 
+            <Link
               to="/"
               className="hover:text-purple-300 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Home
             </Link>
-            <Link 
-              to="/examples" 
+            <Link
+              to="/examples"
               className="hover:text-purple-300 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Examples
             </Link>
-            <Link 
-              to="/pricing" 
+            <Link
+              to="/pricing"
               className="hover:text-purple-300 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Pricing
             </Link>
-            <Link 
-              to="/about" 
+            <Link
+              to="/about"
               className="hover:text-purple-300 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               About
             </Link>
-            <Link 
-              to="/create" 
+            <Link
+              to="/create"
               className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-md transition-colors inline-block w-fit"
               onClick={() => setIsMenuOpen(false)}
             >
