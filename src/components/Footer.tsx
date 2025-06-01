@@ -27,7 +27,7 @@ const Footer: React.FC = () => {
         
         <div className="mt-6 pt-6 border-t border-gray-800 text-center text-sm text-gray-500">
           <p className="flex items-center justify-center">
-            Made with <Heart className="h-4 w-4 mx-1 text-red-500" /> for LLM enthusiasts
+            Made with <Heart className="h-4 w-4 mx-1 text-red-500" /> for you
           </p>
         </div>
       </div>

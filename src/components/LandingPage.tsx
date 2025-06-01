@@ -73,11 +73,11 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-purple-50 shadow-md"> {/* Added shadow */}
-              <div className="text-4xl font-bold text-blue-600 mb-2">98%</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2">91.3%</div>
               <p className="text-gray-600">Accuracy Rate</p>
             </div>
             <div className="p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 shadow-md"> {/* Added shadow */}
-              <div className="text-4xl font-bold text-purple-600 mb-2">50K+</div>
+              <div className="text-4xl font-bold text-purple-600 mb-2">2K+</div>
               <p className="text-gray-600">Prompts Generated</p>
             </div>
             <div className="p-8 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 shadow-md"> {/* Added shadow */}

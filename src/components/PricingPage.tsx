@@ -21,7 +21,7 @@ const PricingPage: React.FC = () => {
       period: "per month",
       description: "Ideal for growing businesses",
       features: [
-        "100 prompt generations per month",
+        "49 prompt generations per month",
         "Advanced prompt templates",
         "Priority response time",
         "Phone & email support",
@@ -35,13 +35,13 @@ const PricingPage: React.FC = () => {
       price: "Custom",
       description: "For large organizations with specific needs",
       features: [
-        "Unlimited prompt generations",
+        "3 Expert as per required domain ",
         "Custom prompt development",
         "Dedicated account manager",
         "24/7 priority support",
         "API access",
-        "Custom integration support",
-        "Training sessions"
+        "Meeting support ",
+        "Training and decision sessions"
       ]
     }
   ];
