@@ -3,32 +3,28 @@ import { Heart } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-gray-900 text-gray-300 py-8">
+    <footer className="bg-white border-t border-green-100 py-6">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-4 md:mb-0">
-            <p className="text-sm">
-              © {new Date().getFullYear()} Prompt Engine. All rights reserved.
-            </p>
+        <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
+          <div className="flex items-center space-x-1 text-sm text-gray-600">
+            <span>© {new Date().getFullYear()} Sparkie AI</span>
+            <span className="text-gray-400">•</span>
+            <span className="flex items-center">
+              Made with <Heart className="h-3 w-3 mx-1 text-green-500 animate-pulse" /> for you
+            </span>
           </div>
           
-          <div className="flex items-center space-x-6">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              Privacy Policy
+          <div className="flex items-center space-x-4 text-xs">
+            <a href="#" className="text-gray-500 hover:text-green-600 transition-colors duration-200 hover:underline">
+              Privacy
             </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              Terms of Service
+            <a href="#" className="text-gray-500 hover:text-green-600 transition-colors duration-200 hover:underline">
+              Terms
             </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
+            <a href="#" className="text-gray-500 hover:text-green-600 transition-colors duration-200 hover:underline">
               Contact
             </a>
           </div>
-        </div>
-        
-        <div className="mt-6 pt-6 border-t border-gray-800 text-center text-sm text-gray-500">
-          <p className="flex items-center justify-center">
-            Made with <Heart className="h-4 w-4 mx-1 text-red-500" /> for you
-          </p>
         </div>
       </div>
     </footer>

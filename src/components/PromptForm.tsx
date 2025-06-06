@@ -1,33 +1,83 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Send, RotateCcw, Sparkles, AlertCircle, Zap, Star } from 'lucide-react';
+
+interface Message {
+  id: string;
+  type: 'user' | 'bot';
+  text: string;
+  timestamp: Date;
+}
 
 const PromptChat: React.FC = () => {
-  const [messages, setMessages] = useState<{ type: 'user' | 'bot'; text: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(true);
+  const [streakCount, setStreakCount] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
 
+  // Scroll to the bottom of the chat when messages or typing state changes
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Adjust textarea height based on content
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }, [input]);
+
+  // Focus the textarea on initial load if no messages
+  useEffect(() => {
+    if (messages.length === 0 && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [messages.length]);
+
+  // Auto-scroll to input area after first message
+  useEffect(() => {
+    if (messages.length === 1 && inputContainerRef.current) {
+      setTimeout(() => {
+        inputContainerRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'end' 
+        });
+        // Ensure focus is maintained
+        textareaRef.current?.focus();
+      }, 500);
+    }
+  }, [messages.length]);
+
+  const generateId = () => Math.random().toString(36).substr(2, 9);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = input.trim();
-    if (!trimmed) return;
+    if (!trimmed || isTyping) return;
 
-    setMessages((prev) => [...prev, { type: 'user', text: trimmed }]);
+    const userMessage: Message = {
+      id: generateId(),
+      type: 'user',
+      text: trimmed,
+      timestamp: new Date()
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
     setError(null);
+
+    // Maintain focus immediately after submission
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
       const response = await fetch('http://localhost:8000/generate', {
@@ -44,22 +94,40 @@ const PromptChat: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.detail || `Server error: ${response.status}`);
       }
 
       const data = await response.json();
-      const botMessage = data?.prompt || 'Sorry, I could not generate a response.';
-      setMessages((prev) => [...prev, { type: 'bot', text: botMessage }]);
+      const botMessage: Message = {
+        id: generateId(),
+        type: 'bot',
+        text: data?.prompt || 'I apologize, but I couldn\'t generate a response at this time.',
+        timestamp: new Date()
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+      setIsConnected(true);
+      setStreakCount(prev => prev + 1);
     } catch (err: any) {
       console.error('Failed to fetch response:', err);
-      const errorMessage = err.message || 'Failed to fetch response from server. Please try again.';
+      const errorMessage = err.message || 'Connection failed. Please check your internet and try again.';
       setError(errorMessage);
-      setMessages((prev) => [
-        ...prev,
-        { type: 'bot', text: `An error occurred: ${errorMessage.substring(0,100)}${errorMessage.length > 100 ? '...' : ''}` },
-      ]);
+      setIsConnected(false);
+      
+      const errorBotMessage: Message = {
+        id: generateId(),
+        type: 'bot',
+        text: `I'm having trouble connecting right now. ${errorMessage.includes('Server error') ? 'The server might be busy.' : 'Please check your connection and try again.'}`,
+        timestamp: new Date()
+      };
+
+      setMessages((prev) => [...prev, errorBotMessage]);
     } finally {
       setIsTyping(false);
+      // Ensure focus is restored after bot response
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -75,163 +143,365 @@ const PromptChat: React.FC = () => {
     setInput('');
     setIsTyping(false);
     setError(null);
+    setIsConnected(true);
+    setStreakCount(0);
+    // Focus the textarea when starting a new chat
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
   };
 
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const quickPrompts = [
+    "Write a creative story",
+    "Explain quantum physics simply", 
+    "Generate business ideas",
+    "Help with coding problems",
+    "Create marketing copy",
+    "Plan a vacation"
+  ];
+
   return (
-    <div className="min-h-screen h-screen relative flex flex-col font-sans bg-gray-950 overflow-hidden">
-      {/* Full-page Video Background */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <video
-          className="w-full h-full object-cover"
-          src={'/videos/your-background-video.mp4'} // <--- IMPORTANT: REPLACE WITH YOUR VIDEO PATH
-          autoPlay
-          loop
-          muted
-          playsInline
-        >
-          Your browser does not support the video tag.
-        </video>
-        {/* Refined Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-950/80 via-purple-950/70 to-indigo-950/80 opacity-90"></div>
+    <div className="min-h-screen h-screen relative flex flex-col font-sans bg-white overflow-hidden mt-24">
+      {/* Subtle Background Pattern */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 via-white to-green-50/30"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.03),transparent_50%)]"></div>
+        <div className="floating-orbs">
+          <div className="orb orb-1"></div>
+          <div className="orb orb-2"></div>
+          <div className="orb orb-3"></div>
+        </div>
       </div>
 
-      {/* Chat Content Area (Full Page, Centered Content) */}
-      <div className="relative z-10 flex flex-col flex-grow w-full max-w-3xl mx-auto h-full">
-        {/* Chat Header */}
-        <div className="flex items-center justify-between p-4 md:p-5 border-b border-white/10 shrink-0">
-          <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-            Sparkie AI
-          </h1>
+      {/* Main Chat Container */}
+      <div className="relative z-10 flex flex-col flex-grow w-full max-w-4xl mx-auto h-full">
+        {/* Enhanced Header */}
+        <header className="flex items-center justify-between p-4 md:p-6 border-b border-green-100 backdrop-blur-sm shrink-0">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
+              <Sparkles className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+                Sparkie AI
+              </h1>
+              <div className="flex items-center space-x-3 text-sm">
+                <div className="flex items-center space-x-1">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
+                  <span className="text-gray-600">
+                    {isConnected ? 'Connected' : 'Connection Issues'}
+                  </span>
+                </div>
+                {streakCount > 0 && (
+                  <div className="flex items-center space-x-1 bg-green-50 border border-green-200 px-2 py-1 rounded-full">
+                    <Star className="w-3 h-3 text-green-600" />
+                    <span className="text-green-700 text-xs font-semibold">{streakCount} streak</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
           {messages.length > 0 && (
             <button
               onClick={handleNewChat}
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 transition-all duration-300 text-white py-2 px-4 md:px-5 rounded-xl text-sm font-medium shadow-lg flex items-center justify-center group transform hover:scale-105 active:scale-95 new-chat-button-appear"
+              className="group bg-white hover:bg-green-50 transition-all duration-300 text-gray-700 hover:text-green-700 py-3 px-5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg flex items-center justify-center space-x-2 border border-green-200 hover:border-green-300 transform hover:scale-105 active:scale-95"
               title="Start a new chat"
             >
-              New Chat
+              <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+              <span>New Chat</span>
             </button>
           )}
-        </div>
+        </header>
 
-        {/* Messages Display Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
-          {messages.length === 0 && !isTyping ? ( // Ensure welcome message doesn't show if bot is about to respond to an initial (future) auto-prompt
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-4 md:px-6 py-10 space-y-5 h-full welcome-message-fade-in">
-              <div className="text-6xl md:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 leading-tight animate-scale-in">
-                Hi, I'm Sparkie.
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
+          {messages.length === 0 && !isTyping ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-4 md:px-6 py-10 space-y-8 h-full">
+              <div className="relative">
+                <div className="text-6xl md:text-8xl font-extrabold tracking-tight text-gray-800 leading-tight welcome-text">
+                  Hi, I'm Sparkie.
+                </div>
+                <div className="absolute -top-4 -right-4 text-4xl animate-bounce">🌿</div>
               </div>
-              <p className="text-gray-200 text-lg md:text-xl max-w-md animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-                “I Don’t Guess Prompts, I Master Them — Hit, Trial, Repeat.”
-              </p>
+              <div className="space-y-6 max-w-2xl">
+                <p className="text-gray-600 text-lg md:text-xl leading-relaxed animate-fade-in-delayed">
+                  "I Don't Guess Prompts, I Master Them — Hit, Trial, Repeat."
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-8">
+                  {quickPrompts.map((prompt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setInput(prompt);
+                        setTimeout(() => {
+                          textareaRef.current?.focus();
+                        }, 100);
+                      }}
+                      className="p-3 text-sm bg-white hover:bg-green-50 border border-green-100 hover:border-green-200 rounded-xl text-gray-700 hover:text-green-700 transition-all duration-200 text-left hover:scale-105 active:scale-95 shadow-sm hover:shadow-md"
+                    >
+                      <Zap className="w-4 h-4 mb-1 text-green-500" />
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             messages.map((msg, idx) => (
               <div
-                key={idx}
-                className={`rounded-xl px-4 py-3 text-base leading-relaxed max-w-[85%] break-words shadow-lg message-enter-animation ${
-                  msg.type === 'user'
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-700 self-end ml-auto text-white rounded-br-md'
-                    : 'bg-gray-700/90 self-start mr-auto text-gray-100 rounded-bl-md border border-gray-600/50'
-                }`}
+                key={msg.id}
+                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'} group message-appear`}
                 style={{ animationDelay: `${idx * 0.1}s` }}
               >
-                {msg.text}
+                <div className={`max-w-[85%] md:max-w-[75%] space-y-2`}>
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-base leading-relaxed shadow-md backdrop-blur-sm border transition-all duration-300 group-hover:shadow-lg ${
+                      msg.type === 'user'
+                        ? 'bg-green-500 text-white border-green-400 rounded-br-md message-user-glow' 
+                        : 'bg-white text-gray-800 border-gray-200 rounded-bl-md message-bot-glow'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                  <div className={`text-xs text-gray-500 px-2 ${msg.type === 'user' ? 'text-right' : 'text-left'}`}>
+                    {formatTime(msg.timestamp)}
+                  </div>
+                </div>
               </div>
             ))
           )}
 
           {isTyping && (
-            <div className="flex items-center space-x-3 bg-gray-700/90 self-start mr-auto rounded-xl px-4 py-3 text-gray-100 max-w-[85%] rounded-bl-md border border-gray-600/50 message-enter-animation">
-              <div className="typing-animation">
-                <span></span>
-                <span></span>
-                <span></span>
+            <div className="flex justify-start typing-appear">
+              <div className="max-w-[85%] md:max-w-[75%]">
+                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-4 backdrop-blur-sm shadow-md">
+                  <div className="flex items-center space-x-3">
+                    <div className="typing-animation">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <span className="text-sm text-gray-600">Sparkie is thinking...</span>
+                  </div>
+                </div>
               </div>
-              <span className="text-sm italic text-gray-300">Sparkie is thinking...</span>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-600/90 text-red-50 p-3 rounded-xl mt-4 max-w-[90%] mx-auto text-center text-sm font-medium shadow-lg error-fade-in">
-              {error}
+            <div className="flex justify-center error-appear">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl max-w-md mx-auto text-center backdrop-blur-sm shadow-md">
+                <div className="flex items-center justify-center space-x-2 mb-2">
+                  <AlertCircle className="w-5 h-5" />
+                  <span className="font-medium">Connection Error</span>
+                </div>
+                <p className="text-sm opacity-90">{error}</p>
+              </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
-        {/* Input area */}
-        <form
-          onSubmit={handleSubmit}
-          className="flex items-end gap-2 md:gap-3 px-3 py-3 md:px-4 md:py-4 border-t border-white/10 shrink-0"
-        >
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Message Sparkie..."
-            rows={1}
-            className="flex-1 p-3 rounded-xl bg-gray-800/90 text-white border border-gray-600/70 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 resize-none custom-scrollbar placeholder:text-gray-300"
-            style={{ overflowY: 'hidden' }}
-          />
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-300 px-4 py-3 md:px-5 rounded-xl font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-50"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 hidden md:inline-block">
-              <path d="M3.105 3.105a1.5 1.5 0 011.952-.999l11.54 5.129a1.5 1.5 0 010 2.73l-11.54 5.129a1.5 1.5 0 01-1.952-.999V3.105z" />
-            </svg>
-            <span>Send</span>
-          </button>
-        </form>
+        {/* Enhanced Input Area */}
+        <div className="shrink-0 p-4 md:p-6 border-t border-green-100 backdrop-blur-sm" ref={inputContainerRef}>
+          <form onSubmit={handleSubmit} className="relative">
+            <div 
+              ref={inputContainerRef}
+              className="flex items-end gap-3 p-4 bg-white backdrop-blur-sm border border-gray-200 rounded-2xl focus-within:border-green-300 focus-within:ring-2 focus-within:ring-green-100 transition-all duration-300 input-glow shadow-md"
+            >
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={(e) => {
+                  // Prevent blur from removing focus unless clicking outside the form
+                  const relatedTarget = e.relatedTarget;
+                  if (!relatedTarget || !e.currentTarget.closest('form')?.contains(relatedTarget)) {
+                    // Only allow blur if clicking completely outside the form
+                    return;
+                  }
+                }}
+                placeholder="Message Sparkie... (Press Enter to send, Shift+Enter for new line)"
+                rows={1}
+                disabled={isTyping}
+                className="flex-1 bg-transparent text-gray-800 placeholder:text-gray-500 focus:outline-none resize-none custom-scrollbar disabled:opacity-50"
+                style={{ overflowY: 'hidden' }}
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isTyping}
+                onMouseDown={(e) => {
+                  // Prevent button click from stealing focus from textarea
+                  e.preventDefault();
+                }}
+                onClick={handleSubmit}
+                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 transition-all duration-300 p-3 rounded-xl font-semibold text-white flex items-center justify-center shadow-md transform hover:scale-105 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-300 send-button-glow"
+              >
+                <Send className={`w-5 h-5 ${isTyping ? 'animate-pulse' : ''}`} />
+              </button>
+            </div>
+            <div className="flex justify-between items-center mt-2 px-2 text-xs text-gray-500">
+              <span>{input.length}/2000</span>
+              <span>Powered by Sparkie AI</span>
+            </div>
+          </form>
+        </div>
       </div>
 
-      {/* Custom CSS for scrollbar and animations (no changes from previous) */}
-      <style jsx>{`
-        /* Custom Scrollbar */
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(30, 27, 47, 0.3); /* Darker, semi-transparent track */
+          background: rgba(0, 0, 0, 0.05);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #8b5cf6; /* purple-500 */
+          background: linear-gradient(to bottom, #10B981, #059669);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #7c3aed; /* purple-600 */
+          background: linear-gradient(to bottom, #059669, #047857);
         }
 
-        /* Typing Animation */
-        .typing-animation { display: flex; align-items: center; gap: 5px; height: 10px; }
-        .typing-animation span { width: 8px; height: 8px; background-color: #93C5FD; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .floating-orbs {
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+        }
+
+        .orb {
+          position: absolute;
+          border-radius: 50%;
+          background: linear-gradient(45deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1));
+          filter: blur(1px);
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .orb-1 {
+          width: 200px;
+          height: 200px;
+          top: 20%;
+          left: 10%;
+          animation-delay: 0s;
+        }
+
+        .orb-2 {
+          width: 150px;
+          height: 150px;
+          top: 60%;
+          right: 15%;
+          animation-delay: 2s;
+        }
+
+        .orb-3 {
+          width: 100px;
+          height: 100px;
+          bottom: 20%;
+          left: 60%;
+          animation-delay: 4s;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) scale(1); opacity: 0.3; }
+          50% { transform: translateY(-20px) scale(1.1); opacity: 0.5; }
+        }
+
+        .typing-animation {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          height: 16px;
+        }
+        .typing-animation span {
+          width: 8px;
+          height: 8px;
+          background: linear-gradient(45deg, #10B981, #059669);
+          border-radius: 50%;
+          animation: bounce 1.4s infinite ease-in-out both;
+        }
         .typing-animation span:nth-child(1) { animation-delay: -0.32s; }
         .typing-animation span:nth-child(2) { animation-delay: -0.16s; }
         .typing-animation span:nth-child(3) { animation-delay: 0s; }
-        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
 
-        /* Message Entry Animation - Springier */
-        .message-enter-animation { opacity: 0; transform: translateY(15px) scale(0.98); animation: messageEnter 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes messageEnter { to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes bounce {
+          0%, 80%, 100% { 
+            transform: scale(0.8) translateY(0); 
+            opacity: 0.7;
+          }
+          40% { 
+            transform: scale(1.2) translateY(-8px); 
+            opacity: 1;
+          }
+        }
 
-        /* Welcome Message Animations */
-        .welcome-message-fade-in { animation: fadeIn 0.8s 0.1s ease-out forwards; }
-        .animate-scale-in { opacity: 0; transform: scale(0.85); animation: scaleIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; animation-delay: 0.3s; }
-        @keyframes scaleIn { to { opacity: 1; transform: scale(1); } }
-        .animate-fade-in-up { opacity: 0; transform: translateY(15px); animation: fadeInSlideUp 0.6s ease-out forwards; }
-        @keyframes fadeInSlideUp { to { opacity: 1; transform: translateY(0); } }
+        .welcome-text {
+          animation: welcomeGlow 3s ease-in-out infinite alternate;
+        }
 
-        /* Error Message Animation */
-        .error-fade-in { opacity: 0; transform: translateY(-15px); animation: errorFadeIn 0.5s ease-out forwards; }
-        @keyframes errorFadeIn { to { opacity: 1; transform: translateY(0); } }
+        @keyframes welcomeGlow {
+          from { filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.1)); }
+          to { filter: drop-shadow(0 0 30px rgba(16, 185, 129, 0.2)); }
+        }
 
-        /* New Chat Button Animation */
-        .new-chat-button-appear { opacity: 0; transform: translateY(-10px); animation: fadeInButton 0.4s ease-out forwards; animation-delay: 0.2s; }
-        @keyframes fadeInButton { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .message-appear {
+          opacity: 0;
+          transform: translateY(20px);
+          animation: messageSlideIn 0.5s ease-out forwards;
+        }
+
+        @keyframes messageSlideIn {
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .typing-appear {
+          opacity: 0;
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .error-appear {
+          opacity: 0;
+          animation: errorPop 0.4s ease-out forwards;
+        }
+
+        @keyframes errorPop {
+          0% { opacity: 0; transform: scale(0.8); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        .animate-fade-in-delayed {
+          opacity: 0;
+          animation: fadeIn 0.8s ease-out 0.5s forwards;
+        }
+
+        @keyframes fadeIn {
+          to { opacity: 1; }
+        }
+
+        .message-user-glow:hover {
+          box-shadow: 0 0 25px rgba(34, 197, 94, 0.3);
+        }
+
+        .message-bot-glow:hover {
+          box-shadow: 0 0 25px rgba(156, 163, 175, 0.2);
+        }
+
+        .input-glow:focus-within {
+          box-shadow: 0 0 30px rgba(34, 197, 94, 0.1);
+        }
+
+        .send-button-glow:hover:not(:disabled) {
+          box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+        }
       `}</style>
     </div>
   );
