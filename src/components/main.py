@@ -12,11 +12,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173"],  # your frontend origin
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 class PromptRequest(BaseModel):
     businessName: str
     industry: str
