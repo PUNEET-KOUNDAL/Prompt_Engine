@@ -40,25 +40,113 @@ const EducationPage: React.FC = () => {
       default: // 'promptingDocs' is the only case and default
         return (
           <div className="animate-fade-in">
-            <h2 className="text-3xl font-bold text-gray-800 mb-6">📝 Prompting Docs: Master the Art of AI Interaction</h2>
+            <h2 className="text-3xl font-bold text-gray-800 mb-6"> Prompting Docs: Master the Art of AI Interaction</h2>
             <p className="text-lg text-gray-700 mb-4">
-              Dive into our comprehensive documentation on **how to prompt Large Language Models effectively**. From the basics of prompt construction to advanced techniques, these guides will help you unlock the full potential of AI.
+              The content presented here provides a detailed explanation of prompting strategies and the techniques employed to improve the overall performance and efficiency of Large Language Models (LLMs). These insights are fundamental for understanding how LLMs operate and how their responses can be influenced through well-structured inputs.
+
+The techniques discussed—including the role of input design, contextual framing, and the use of examples (such as zero-shot, one-shot, and few-shot learning)—are essential tools for anyone working with AI systems. These methods enable users to fine-tune model behavior, guide response accuracy, and ensure alignment with specific tasks or goals.
+
+This material is well-suited for educational purposes, especially in the fields of artificial intelligence, machine learning, and natural language processing. It serves as a foundational resource for students, researchers, and practitioners aiming to develop a deeper understanding of prompt engineering and its impact on modern AI systems.
             </p>
-            <ul className="list-disc ml-8 text-gray-600 space-y-3 text-lg">
+            <ul className="list-disc ml-8 text-gray-600 space-y-6 text-lg">
               <li>
-                <span className="text-blue-700 font-semibold">Prompting Basics:</span> Understand the fundamental principles of crafting clear, concise, and effective prompts for various AI models.
+                <span className="text-blue-700 font-semibold">Prompting Basics:</span> Prompts are fundamental to Large Language Models (LLMs) for generating desired output. Crafting a successful prompt often requires an iterative **hit-and-trial method**, as initial attempts rarely yield perfect results. Effective prompt crafting demands a deep understanding of the **domain**, and different LLMs may interpret the same prompt differently. Therefore, it's our responsibility to ensure the LLM understands the intent. For example, a prompt like "tell me about Pythagoras in a deeper way" versus "tell me about Pythagoras in an intuitive way" showcases how subtle keyword differences ("intuitive" vs. "deeper") can significantly alter the output, making it difficult to predict which will perform better in a given condition. **Domain-specific knowledge** is crucial for fine-tuning prompts, and ultimately, prompting remains an iterative process.
+                <div className="my-4 text-center">
+                  <img src=
+                  "public\promt_basic.webp" alt="Prompting Basics Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: Illustration of basic prompt structure and iteration.</p>
+                </div>
               </li>
               <li>
-                <span className="text-blue-700 font-semibold">Advanced Prompt Engineering Techniques:</span> Explore strategies like Chain-of-Thought, Few-Shot Prompting, and persona-based prompting for complex tasks.
+                <span className="text-blue-700 font-semibold">Working of Prompts:</span> A prompt typically consists of three important parts that guide an LLM in producing a good output: **Input**, **Context**, and **Examples**.
+                <br /><br />
+                **Input** can take various forms, such as a question, a task, or a query. It serves as the starting point, informing the model about the user's objective.
+                <br /><br />
+                **Context** is provided within the prompt, sometimes utilizing techniques like **Multi-Context Prompting (MCP)**. This component sets boundaries, giving the model instructions, rules, limitations, and defining the expected behavior.
+                <br /><br />
+                **Examples** are a crucial sub-part that become especially important in more advanced prompting. They help guide the model more clearly towards the desired output format and style.
+                <br /><br />
+                There are several types of example-based prompting techniques:
+                <ul className="list-circle ml-8 mt-2 space-y-2">
+                  <li>**Zero-shot learning:** No examples are provided. The model relies solely on the input and context to generate a response.</li>
+                  <li>**One-shot learning:** A single example is included in the prompt to demonstrate the desired output format or pattern, helping the model understand the "playground" it operates within.</li>
+                  <li>**Few-shot learning:** Multiple examples with some variation are given. This technique significantly enhances the model's understanding of the required structure, behavior, and intent behind the prompt.</li>
+                </ul>
+                <div className="my-4 text-center">
+                  <img src="\public\technique_of_prompting.png" alt="Prompt Components and Learning Types Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: Breakdown of prompt components and example-based learning.</p>
+                </div>
               </li>
               <li>
-                <span className="text-blue-700 font-semibold">Prompt Patterns for Specific Use Cases:</span> Discover ready-to-use prompt structures for summarization, translation, code generation, creative writing, and more.
+                <span className="text-blue-700 font-semibold">Advanced Prompt Engineering Techniques:</span> Advanced prompt engineering techniques are structured methods designed to enhance the performance of LLMs when tackling **complex and cognitively demanding tasks**. These tasks often include programming, solving mathematical problems, performing logical reasoning, completing word puzzles, and other intricate problem-solving activities.
+                <br /><br />
+                Through these advanced techniques, prompts are crafted to provide LLMs with clearer context, structured inputs, and more specific guidance. This significantly improves the model’s ability to understand and generate accurate and relevant responses. Furthermore, these techniques often leverage prior knowledge and logical reasoning frameworks to better guide the model's outputs, leading to more coherent and pertinent responses.
+                <div className="my-4 text-center">
+                  <img src="D:\PROJECTS\prompt_engine\prompt_engine\Prompt_Engine\public\technique_of_prompting.webp-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: Conceptual representation of advanced prompt engineering.</p>
+                </div>
               </li>
               <li>
-                <span className="text-blue-700 font-semibold">Troubleshooting & Refinement:</span> Learn how to debug poor responses and iteratively refine your prompts for optimal results.
+                <span className="text-blue-700 font-semibold">Chain of Thought (CoT):</span> **Chain of Thought (CoT) prompting** is an advanced technique that significantly enhances the **reasoning capabilities** of LLMs. Instead of asking the model to produce a direct answer, CoT prompting encourages it to generate a **step-by-step sequence of intermediate thoughts or logical steps** that culminate in the final solution. This structured reasoning process enables the model to better understand and solve complex problems by breaking them down into smaller, more manageable components.
+                <br /><br />
+                The effectiveness of CoT prompting has been empirically proven. For instance, its application to Google’s PaLM model led to a remarkable improvement in performance on the **GSM8K benchmark** (an arithmetic word problem dataset), boosting accuracy from 17.0% to 58.1%. This demonstrates CoT’s substantial potential in tasks requiring multi-step reasoning.
+                <br /><br />
+                Several variants of CoT prompting exist:
+                <ul className="list-circle ml-8 mt-2 space-y-2">
+                  <li>**Few-shot CoT prompting:** Involves providing the model with a few examples that include not only the final answers but also the detailed **reasoning steps**. Phrases like *“Let’s think step by step”* or *“Break the problem into smaller parts”* are often used to cue the model to engage in this structured reasoning. While more complex to implement than standard few-shot methods, this approach yields significantly better results on reasoning-intensive tasks.</li>
+                  <li>**Zero-shot CoT prompting:** Utilizes reasoning cues without providing any examples. Even without prior demonstrations, simply prompting the model with phrases that encourage step-by-step thinking can activate its reasoning capabilities, often outperforming traditional zero-shot or few-shot baselines.</li>
+                </ul>
+                CoT prompting consistently outperforms standard baseline prompting across various linguistic styles, annotators, examples, and language models, highlighting its **robustness and effectiveness**. **Sensitivity in CoT prompting** refers to how prompt design influences model performance, emphasizing the importance of well-matched and clear prompts, especially for complex tasks. **Coherence in CoT** ensures that reasoning steps follow a logical order, where later steps do not illogically depend on earlier ones, and vice versa. Removing coherence negatively impacts system performance.
+                <div className="my-4 text-center">
+                  <img src="public\fewshortcot.png" alt="Chain of Thought Prompting Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: Visualizing the Chain of Thought process.</p>
+                </div>
               </li>
               <li>
-                <span className="text-blue-700 font-semibold">Integrating Prompts with Your Applications:</span> Guides on connecting your finely-tuned prompts to real-world applications and workflows.
+                <span className="text-blue-700 font-semibold">Self-Consistency:</span> **Self-consistency** is a technique for enhancing LLM performance by generating **multiple, diverse chains of thought** for the same problem. The model then selects the most **consistent answer** among all generated solutions. This method significantly increases the model's multi-step reasoning capabilities, similar to Chain of Thought prompting.
+                <br /><br />
+                It demonstrably improves the performance of CoT prompting across various benchmarks, including an impressive **+17.9% on GSM8K**, **+11.0% on SVAMP**, and **+12.2% on AQuA**. Self-consistency is an **unsupervised technique**, making it compatible with pre-trained language models as it requires no extra human annotation, training, fine-tuning, or model changes.
+                <br /><br />
+                For instance, it contributes up to a **+23% accuracy improvement** for larger models like LaMDA137B and GPT-3. Even for models that already perform well, self-consistency consistently offers additional gains, such as a **+12%-18% accuracy improvement** on tasks like AQuA and GSM8K over PaLM-540B.
+                <div className="my-4 text-center">
+                  <img src="\public\self_consistency.jpeg" alt="Self-Consistency Mechanism Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: How self-consistency refines LLM outputs.</p>
+                </div>
+              </li>
+              <li>
+                <span className="text-blue-700 font-semibold">Tree of Thought (ToT) Prompting:</span> **Tree of Thought (ToT) prompting** extends the concept of Chain of Thought by allowing LLMs to explore multiple reasoning paths. Instead of a single linear chain, ToT constructs a **tree-like structure** where each node represents an intermediate thought or step. This enables the model to **backtrack, explore alternatives, and prune unpromising paths**, leading to more robust and accurate solutions for complex problems, especially those requiring search and planning.
+                <div className="my-4 text-center">
+                  <img src="https://via.placeholder.com/600x300?text=Tree+of+Thought+Prompting" alt="Tree of Thought Prompting Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: Illustrating the branching structure of Tree of Thought.</p>
+                </div>
+              </li>
+              <li>
+                <span className="text-blue-700 font-semibold">Active Prompting:</span> **Active prompting** is a technique where the LLM itself plays a role in generating or refining the prompts used for subsequent steps or queries. Instead of relying solely on a fixed set of initial prompts, the model might **ask clarifying questions**, **generate potential sub-questions**, or **suggest improvements to the prompt** based on its current understanding of the task. This dynamic interaction helps in converging towards better solutions by actively involving the model in the prompt engineering process.
+                <div className="my-4 text-center">
+                  <img src="https://via.placeholder.com/600x300?text=Active+Prompting+Flow" alt="Active Prompting Flow Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: The iterative process of active prompting.</p>
+                </div>
+              </li>
+              <li>
+                <span className="text-blue-700 font-semibold">Reasoning Without Observation:</span> This technique focuses on tasks where the LLM needs to perform complex reasoning without direct access to external tools, real-world data, or immediate feedback. It requires the model to rely purely on its **internal knowledge and logical inference capabilities** to derive a solution. This is particularly relevant for abstract reasoning problems, hypothetical scenarios, or situations where external observation is either impossible or not provided.
+                <div className="my-4 text-center">
+                  <img src="https://via.placeholder.com/600x300?text=Reasoning+Without+Observation" alt="Reasoning Without Observation Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: Conceptualizing reasoning without external data.</p>
+                </div>
+              </li>
+              <li>
+                <span className="text-blue-700 font-semibold">Reason and Act (ReAct):</span> **Reason and Act (ReAct) prompting** is a powerful technique that interleaves **reasoning traces (Thought)** with **task-specific actions (Act)**. The LLM generates a thought process, then decides on an action to perform (e.g., using a search engine, calling an API, or generating a specific output format). The result of the action is then observed, and the model continues its thought process based on this observation. This iterative cycle of **Thought-Act-Observation** allows LLMs to perform dynamic problem-solving, leveraging external tools and adapting to real-time feedback.
+                <div className="my-4 text-center">
+                  <img src="https://via.placeholder.com/600x300?text=Reason+and+Act+(ReAct)" alt="Reason and Act (ReAct) Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: The iterative Thought-Act-Observation loop of ReAct.</p>
+                </div>
+              </li>
+              <li>
+                <span className="text-blue-700 font-semibold">Reflection:</span> **Reflection** in prompt engineering involves the LLM critically evaluating its own generated output or reasoning process. After an initial attempt to solve a problem, the model is prompted to **critique its solution**, identify potential errors, or recognize areas for improvement. This self-assessment mechanism allows the model to **refine its answer or reasoning path iteratively**, leading to higher quality and more accurate outputs. It's often used in conjunction with other techniques to enhance robustness.
+                <div className="my-4 text-center">
+                  <img src="https://via.placeholder.com/600x300?text=LLM+Reflection+Process" alt="LLM Reflection Process Diagram" className="rounded-lg shadow-md mx-auto" />
+                  <p className="text-sm text-gray-500 mt-2">Figure: The self-correction cycle through reflection.</p>
+                </div>
               </li>
             </ul>
             {/* No back button needed as this is the primary and only internal view */}
@@ -90,12 +178,12 @@ const EducationPage: React.FC = () => {
         <div className="flex justify-center flex-wrap gap-4 mb-8">
           {/* YouTube button is now a direct external link and is prominent */}
           <a
-            href="https://www.youtube.com/@PromptEngineAI" // Replace with your actual YouTube channel URL
+            href="https://www.youtube.com/" // Replace with your actual YouTube channel URL
             target="_blank"
             rel="noopener noreferrer"
             className="px-6 py-3 rounded-full text-lg font-semibold transition-all duration-300 ease-in-out
-                       bg-red-500 text-white border border-red-600 hover:bg-red-600 hover:text-white
-                       transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                        bg-red-500 text-white border border-red-600 hover:bg-red-600 hover:text-white
+                        transform hover:scale-105 shadow-lg flex items-center justify-center gap-2"
           >
             ▶️ YouTube Channel
           </a>
