@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, RotateCcw, Sparkles, AlertCircle, Zap, Star } from 'lucide-react';
 
 interface Message {
@@ -15,6 +15,8 @@ const PromptChat: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(true);
   const [streakCount, setStreakCount] = useState(0);
+  const [sessionId, setSessionId] = useState<string | null>(null); // New state for session_id
+
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
@@ -32,28 +34,100 @@ const PromptChat: React.FC = () => {
     }
   }, [input]);
 
-  // Focus the textarea on initial load if no messages
+  // Focus the textarea on initial load or new chat
   useEffect(() => {
-    if (messages.length === 0 && textareaRef.current) {
+    if (textareaRef.current && !isTyping) {
       textareaRef.current.focus();
     }
-  }, [messages.length]);
+  }, [messages.length, isTyping]); // Trigger on messages change or typing state change
 
-  // Auto-scroll to input area after first message
+  // Auto-scroll to input area after initial load if no messages (for welcome screen)
   useEffect(() => {
-    if (messages.length === 1 && inputContainerRef.current) {
+    if (messages.length === 0 && textareaRef.current && inputContainerRef.current) {
       setTimeout(() => {
         inputContainerRef.current?.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'end' 
         });
-        // Ensure focus is maintained
         textareaRef.current?.focus();
       }, 500);
     }
   }, [messages.length]);
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Function to handle API calls with error handling
+  const callApi = useCallback(async (endpoint: string, payload: any) => {
+    try {
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Server error: ${response.status}`);
+      }
+      setIsConnected(true);
+      setError(null); // Clear previous errors on successful connection
+      return await response.json();
+    } catch (err: any) {
+      console.error('API call failed:', err);
+      const errorMessage = err.message || 'Connection failed. Please check your internet and try again.';
+      setError(errorMessage);
+      setIsConnected(false);
+
+      const errorBotMessage: Message = {
+        id: generateId(),
+        type: 'bot',
+        text: `I'm having trouble connecting right now. ${errorMessage.includes('Server error') ? 'The server might be busy.' : 'Please check your connection and try again.'}`,
+        timestamp: new Date()
+      };
+      setMessages((prev) => [...prev, errorBotMessage]);
+      setIsTyping(false); // Stop typing indicator on error
+      throw err; // Re-throw to be caught by the calling function if needed
+    }
+  }, []);
+
+  // Function to start a new chat session on the backend
+  const startNewSession = useCallback(async () => {
+    setIsTyping(true);
+    setMessages([]); // Clear messages immediately for new chat feel
+    setInput('');
+    setError(null);
+    setStreakCount(0);
+
+    try {
+      const data = await callApi('/new_chat', sessionId ? { session_id: sessionId } : {});
+      setSessionId(data.session_id); // Store the new session ID
+      const botMessage: Message = {
+        id: generateId(),
+        type: 'bot',
+        text: data.prompt, // This will be the initial greeting from LLM1
+        timestamp: new Date()
+      };
+      setMessages([botMessage]); // Start messages with bot's initial greeting
+    } catch (error) {
+      // Error handling for new chat is already in callApi, no need to re-add specific bot message here
+      console.error("Failed to start new chat session:", error);
+    } finally {
+      setIsTyping(false);
+      textareaRef.current?.focus(); // Ensure focus on input
+    }
+  }, [sessionId, callApi]);
+
+  // Initial load: Start a new chat if no session ID exists
+  useEffect(() => {
+    if (!sessionId && messages.length === 0) {
+      startNewSession();
+    }
+  }, [sessionId, messages.length, startNewSession]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,34 +144,23 @@ const PromptChat: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
-    setError(null);
+    setError(null); // Clear error on new submission attempt
 
     // Maintain focus immediately after submission
     requestAnimationFrame(() => {
       textareaRef.current?.focus();
     });
 
+    // Simulate a slight delay for better UX before bot response
     await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
-      const response = await fetch('http://localhost:8000/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessName: '',
-          industry: '',
-          targetAudience: '',
-          useCase: trimmed,
-          additionalContext: '',
-        }),
+      // IMPORTANT: Send the session_id with the request!
+      const data = await callApi('/generate', {
+        useCase: trimmed,
+        session_id: sessionId, // <-- THIS IS THE KEY CHANGE
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
       const botMessage: Message = {
         id: generateId(),
         type: 'bot',
@@ -106,22 +169,18 @@ const PromptChat: React.FC = () => {
       };
 
       setMessages((prev) => [...prev, botMessage]);
-      setIsConnected(true);
       setStreakCount(prev => prev + 1);
-    } catch (err: any) {
-      console.error('Failed to fetch response:', err);
-      const errorMessage = err.message || 'Connection failed. Please check your internet and try again.';
-      setError(errorMessage);
-      setIsConnected(false);
-      
-      const errorBotMessage: Message = {
-        id: generateId(),
-        type: 'bot',
-        text: `I'm having trouble connecting right now. ${errorMessage.includes('Server error') ? 'The server might be busy.' : 'Please check your connection and try again.'}`,
-        timestamp: new Date()
-      };
 
-      setMessages((prev) => [...prev, errorBotMessage]);
+      // If the backend indicates it's the final prompt, you might want to do something specific
+      if (data.is_final_prompt) {
+        console.log("Final prompt generated! Session complete.");
+        // Optionally, reset session_id if backend deletes the session
+        setSessionId(null); 
+      }
+
+    } catch (err) {
+      // Error handling already in callApi, no need to re-add specific bot message here
+      console.error('Failed to generate response:', err);
     } finally {
       setIsTyping(false);
       // Ensure focus is restored after bot response
@@ -138,30 +197,13 @@ const PromptChat: React.FC = () => {
     }
   };
 
-  const handleNewChat = () => {
-    setMessages([]);
-    setInput('');
-    setIsTyping(false);
-    setError(null);
-    setIsConnected(true);
-    setStreakCount(0);
-    // Focus the textarea when starting a new chat
-    setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 100);
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   const quickPrompts = [
-    "Write a creative story",
-    "Explain quantum physics simply", 
-    "Generate business ideas",
-    "Help with coding problems",
-    "Create marketing copy",
-    "Plan a vacation"
+    "I'm in the e-commerce industry. My business is 'PetPals' and we offer organic pet food and handmade pet accessories.",
+    "I'm a SaaS company called 'TaskFlow', providing project management software.",
+    "My business, 'HealthyBites', is in healthcare, offering personalized meal plans for diabetes patients.",
+    "I need to generate marketing copy for my new product.",
+    "Can you help me design a prompt for customer support bot?",
+    "Explain the concept of 'chain of thought' in prompt engineering."
   ];
 
   return (
@@ -206,16 +248,14 @@ const PromptChat: React.FC = () => {
             </div>
           </div>
           
-          {messages.length > 0 && (
-            <button
-              onClick={handleNewChat}
-              className="group bg-white hover:bg-green-50 transition-all duration-300 text-gray-700 hover:text-green-700 py-3 px-5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg flex items-center justify-center space-x-2 border border-green-200 hover:border-green-300 transform hover:scale-105 active:scale-95"
-              title="Start a new chat"
-            >
-              <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
-              <span>New Chat</span>
-            </button>
-          )}
+          <button
+            onClick={startNewSession} // Use the new function to start a fresh session
+            className="group bg-white hover:bg-green-50 transition-all duration-300 text-gray-700 hover:text-green-700 py-3 px-5 rounded-xl text-sm font-medium shadow-md hover:shadow-lg flex items-center justify-center space-x-2 border border-green-200 hover:border-green-300 transform hover:scale-105 active:scale-95"
+            title="Start a new chat"
+          >
+            <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+            <span>New Chat</span>
+          </button>
         </header>
 
         {/* Messages Area */}
@@ -311,7 +351,6 @@ const PromptChat: React.FC = () => {
         <div className="shrink-0 p-4 md:p-6 border-t border-green-100 backdrop-blur-sm" ref={inputContainerRef}>
           <form onSubmit={handleSubmit} className="relative">
             <div 
-              ref={inputContainerRef}
               className="flex items-end gap-3 p-4 bg-white backdrop-blur-sm border border-gray-200 rounded-2xl focus-within:border-green-300 focus-within:ring-2 focus-within:ring-green-100 transition-all duration-300 input-glow shadow-md"
             >
               <textarea
@@ -319,15 +358,6 @@ const PromptChat: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onBlur={(e) => {
-                  // Prevent blur from removing focus unless clicking outside the form
-                  const relatedTarget = e.relatedTarget;
-                  if (!relatedTarget || !e.currentTarget.closest('form')?.contains(relatedTarget)) {
-                    // Only allow blur if clicking completely outside the form
-                    return;
-                  }
-                }}
-                placeholder="Message Sparkie... (Press Enter to send, Shift+Enter for new line)"
                 rows={1}
                 disabled={isTyping}
                 className="flex-1 bg-transparent text-gray-800 placeholder:text-gray-500 focus:outline-none resize-none custom-scrollbar disabled:opacity-50"
@@ -336,12 +366,8 @@ const PromptChat: React.FC = () => {
               <button
                 type="submit"
                 disabled={!input.trim() || isTyping}
-                onMouseDown={(e) => {
-                  // Prevent button click from stealing focus from textarea
-                  e.preventDefault();
-                }}
                 onClick={handleSubmit}
-                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 transition-all duration-300 p-3 rounded-xl font-semibold text-white flex items-center justify-center shadow-md transform hover:scale-105 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-300 send-button-glow"
+                className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 transition-all duration-300 p-3 rounded-xl font-semibold text-white flex items-center justify-center shadow-md transform hover:scale-105 active:scale-95 disabled:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-300 send-button-glow"
               >
                 <Send className={`w-5 h-5 ${isTyping ? 'animate-pulse' : ''}`} />
               </button>
